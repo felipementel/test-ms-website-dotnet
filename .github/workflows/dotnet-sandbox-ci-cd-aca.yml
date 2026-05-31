@@ -35,7 +35,7 @@ jobs:
     uses: felipementel/gh-actions/.github/workflows/dotnet-sandbox-api-build.yml@main
     with:
       buildMode: ${{ github.event_name == 'workflow_dispatch' && inputs.buildMode || 'Build' }}
-      environment: ${{ inputs.environment || 'DEV' }}
+      environment: ${{ inputs.environment || 'development' }}
       dotnetVersion: '10.x'
       projectBaseDir: './src'
       solutionFileName: 'PortsAndAdapters.slnx'
