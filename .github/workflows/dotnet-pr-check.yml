@@ -21,7 +21,7 @@ on:
       environment:
         description: "Selecione o ambiente de implantação"
         required: true
-        default: 'developement'
+        default: 'development'
         type: environment
 
 jobs:
