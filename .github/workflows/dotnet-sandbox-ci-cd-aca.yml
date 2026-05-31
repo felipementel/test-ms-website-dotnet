@@ -1,24 +1,14 @@
+# {
+#  "apiVersion": apps/v1
+#  "kind": "ci-cd"
+#  "stack: "dotnet"
+# }
+
 name: .NET API — Build & Deploy (Caller Example)
 run-name: "${{ github.actor }} | ${{ inputs.buildMode }} | ${{ inputs.environment }}"
 
-# ---------------------------------------------------------------------------
-# EXEMPLO de caller para os workflows:
-#   - felipementel/gh-actions/.github/workflows/dotnet-sandbox-api-build.yml
-#   - felipementel/gh-actions/.github/workflows/dotnet-sandbox-api-deploy-aca.yml
-#
-# Pré-requisitos no repositório caller:
-#   Secrets: SONAR_PROJECT_KEY, GITLEAKS_LICENSE, SNYK_TOKEN, SONAR_TOKEN,
-#             SAFETY_API_KEY, AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
-#   Environments: DEV, HML, PRD (Settings → Environments)
-#   Variables (por Environment): AZURE_RG, AZURE_ACAE_BASE
-# ---------------------------------------------------------------------------
-
 on:
   push:
-    branches: [main]
-    paths:
-      - 'src/**'
-  pull_request:
     branches: [main]
     paths:
       - 'src/**'
@@ -57,10 +47,7 @@ jobs:
       openAPIFolder: 'open-api'
       dockerFileFullPath: 'docker/Dockerfile'
       dockerBuildContext: '.'
-      registry: 'ghcr.io'
-      # novos
-      # msgCanalDeploy: 'test'
-      # registryUsername: ''  # Deixe vazio para usar github.actor (padrão ghcr.io)
+      registry: ${{ vars.CONTAINER_REGISTRY }}
     permissions:
       security-events: write
       contents: write
@@ -69,14 +56,14 @@ jobs:
     secrets:
       SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
       GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
+      # SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       # REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}  # Opcional — padrão: GITHUB_TOKEN
 
   deploy:
     name: Deploy to ACA
-    if: >
+    if: >-
       github.event_name == 'workflow_dispatch' &&
       inputs.buildMode == 'Build + Tag Validation + Deploy' &&
       needs.build.outputs.image-exists == 'false'
