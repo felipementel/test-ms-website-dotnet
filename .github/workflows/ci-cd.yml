@@ -1,0 +1,103 @@
+name: .NET API — Build & Deploy (Caller Example)
+run-name: "${{ github.actor }} | ${{ inputs.buildMode }} | ${{ inputs.environment }}"
+
+# ---------------------------------------------------------------------------
+# EXEMPLO de caller para os workflows:
+#   - felipementel/gh-actions/.github/workflows/dotnet-sandbox-api-build.yml
+#   - felipementel/gh-actions/.github/workflows/dotnet-sandbox-api-deploy-aca.yml
+#
+# Pré-requisitos no repositório caller:
+#   Secrets: SONAR_PROJECT_KEY, GITLEAKS_LICENSE, SNYK_TOKEN, SONAR_TOKEN,
+#             SAFETY_API_KEY, AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#   Environments: DEV, HML, PRD (Settings → Environments)
+#   Variables (por Environment): AZURE_RG, AZURE_ACAE_BASE
+# ---------------------------------------------------------------------------
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+  workflow_dispatch:
+    inputs:
+      buildMode:
+        description: "Qual ação deseja fazer?"
+        required: true
+        default: 'Build'
+        type: choice
+        options:
+          - Build
+          - Build + Tag Validation
+          - Build + Tag Validation + Deploy
+      environment:
+        description: "Selecione o ambiente de implantação"
+        required: true
+        default: 'developement'
+        type: environment
+
+jobs:
+  build:
+    name: Build
+    uses: felipementel/gh-actions/.github/workflows/dotnet-sandbox-api-build.yml@main
+    with:
+      buildMode: ${{ github.event_name == 'workflow_dispatch' && inputs.buildMode || 'Build' }}
+      environment: ${{ inputs.environment || 'DEV' }}
+      dotnetVersion: '10.x'
+      projectBaseDir: './src'
+      solutionFileName: 'PortsAndAdapters.slnx'
+      mainProject: 'Usuarios.Api'
+      testsFolder: 'tests'
+      reportTitle: 'My Project API'
+      sonarExclusions: ''
+      imageName: 'myproject-api'
+      openAPIFolder: 'open-api'
+      dockerFileFullPath: 'docker/Dockerfile'
+      dockerBuildContext: '.'
+      registry: 'ghcr.io'
+      # novos
+      # msgCanalDeploy: 'test'
+      # registryUsername: ''  # Deixe vazio para usar github.actor (padrão ghcr.io)
+    permissions:
+      security-events: write
+      contents: write
+      id-token: write
+      packages: write
+    secrets:
+      SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+      GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
+      # REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}  # Opcional — padrão: GITHUB_TOKEN
+
+  deploy:
+    name: Deploy to ACA
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      inputs.buildMode == 'Build + Tag Validation + Deploy' &&
+      needs.build.outputs.image-exists == 'false'
+    needs: [build]
+    uses: felipementel/gh-actions/.github/workflows/dotnet-sandbox-api-deploy-aca.yml@main
+    with:
+      environment: ${{ inputs.environment || 'DEV' }}
+      tagVersion: ${{ needs.build.outputs.tag-version }}
+      imageName: 'myproject-api'
+      registry: 'ghcr.io'
+      # registryUsername: ''  # Deixe vazio para usar github.actor (padrão ghcr.io)
+      azureRgBase: ${{ vars.AZURE_RG }}
+      acaeBaseName: ${{ vars.AZURE_ACAE_BASE }}
+      healthCheckPath: '/health/live'
+      deployPollMaxAttempts: '20'
+      deployPollIntervalSeconds: '15'
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
