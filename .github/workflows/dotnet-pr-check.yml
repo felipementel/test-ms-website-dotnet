@@ -19,12 +19,10 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment"
+        description: "Selecione o ambiente de implantação"
         required: true
-        default: "DEV"
-        type: choice
-        options:
-          - DEV
+        default: 'developement'
+        type: environment
 
 jobs:
   pr-check:
