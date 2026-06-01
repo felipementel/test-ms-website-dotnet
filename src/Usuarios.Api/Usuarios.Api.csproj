@@ -9,7 +9,7 @@
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<DockerfileContext>..\..</DockerfileContext>
 		<VersionPrefix>rc</VersionPrefix>
-		<Version>0.1.5</Version>
+		<Version>0.1.6</Version>
 		<VersionSuffix>alfa</VersionSuffix>
 
 	    <!-- Habilita geração do OpenAPI durante o build -->
